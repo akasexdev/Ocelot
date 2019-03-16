@@ -10,7 +10,7 @@
 # Ocelot
 
 Ocelot is a .NET API Gateway. This project is aimed at people using .NET running 
-a micro services / service orientated architecture 
+a micro services / service oriented architecture 
 that need a unified point of entry into their system. However it will work with anything that speaks HTTP and run on any platform that ASP.NET Core supports.
 
 In particular I want easy integration with 
@@ -69,7 +69,7 @@ All versions can be found [here](https://www.nuget.org/packages/Ocelot/)
 
 ## Documentation
 
-Please click [here](http://ocelot.readthedocs.io/en/latest/) for the Ocleot documentation. This includes lots of information and will be helpful if you want to understand the features Ocelot currently offers.
+Please click [here](http://ocelot.readthedocs.io/en/latest/) for the Ocelot documentation. This includes lots of information and will be helpful if you want to understand the features Ocelot currently offers.
 
 ## Coming up
 
@@ -81,11 +81,11 @@ We love to receive contributions from the community so please keep them coming :
 
 Pull requests, issues and commentary welcome!
 
-Please complete the relavent template for issues and PRs. Sometimes it's worth getting in touch with us to discuss changes 
+Please complete the relevant template for issues and PRs. Sometimes it's worth getting in touch with us to discuss changes 
 before doing any work incase this is something we are already doing or it might not make sense. We can also give
 advice on the easiest way to do things :)
 
-Finally we mark all existing issues as help wanted, small, medium and large effort. If you want to contriute for the first time I suggest looking at a help wanted & small effort issue :)
+Finally we mark all existing issues as help wanted, small, medium and large effort. If you want to contribute for the first time I suggest looking at a help wanted & small effort issue :)
 
 ## Donate
 
@@ -96,6 +96,3 @@ If you think this project is worth supporting financially please make a contribu
 ## Things that are currently annoying me
 
 [![](https://codescene.io/projects/697/status.svg) Get more details at **codescene.io**.](https://codescene.io/projects/697/jobs/latest-successful/results)
-
-
-

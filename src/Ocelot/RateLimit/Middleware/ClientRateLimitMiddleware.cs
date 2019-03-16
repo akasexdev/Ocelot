@@ -69,6 +69,9 @@ namespace Ocelot.RateLimit.Middleware
                     
                     // break execution
                     await ReturnQuotaExceededResponse(context.HttpContext, options, retrystring);
+                    
+                    // Set Error
+                    context.Errors.Add(new QuotaExceededError(this.GetResponseMessage(options)));
 
                     return;
                 }
@@ -112,12 +115,12 @@ namespace Ocelot.RateLimit.Middleware
         public virtual void LogBlockedRequest(HttpContext httpContext, ClientRequestIdentity identity, RateLimitCounter counter, RateLimitRule rule, DownstreamReRoute downstreamReRoute)
         {
             Logger.LogInformation(
-                $"Request {identity.HttpVerb}:{identity.Path} from ClientId {identity.ClientId} has been blocked, quota {rule.Limit}/{rule.Period} exceeded by {counter.TotalRequests}. Blocked by rule { downstreamReRoute.UpstreamPathTemplate.Value }, TraceIdentifier {httpContext.TraceIdentifier}.");
+                $"Request {identity.HttpVerb}:{identity.Path} from ClientId {identity.ClientId} has been blocked, quota {rule.Limit}/{rule.Period} exceeded by {counter.TotalRequests}. Blocked by rule { downstreamReRoute.UpstreamPathTemplate.OriginalValue }, TraceIdentifier {httpContext.TraceIdentifier}.");
         }
         
         public virtual Task ReturnQuotaExceededResponse(HttpContext httpContext, RateLimitOptions option, string retryAfter)
         {
-            var message = string.IsNullOrEmpty(option.QuotaExceededMessage) ? $"API calls quota exceeded! maximum admitted {option.RateLimitRule.Limit} per {option.RateLimitRule.Period}." : option.QuotaExceededMessage;
+            var message = this.GetResponseMessage(option);
 
             if (!option.DisableRateLimitHeaders)
             {
@@ -126,6 +129,14 @@ namespace Ocelot.RateLimit.Middleware
 
             httpContext.Response.StatusCode = option.HttpStatusCode;
             return httpContext.Response.WriteAsync(message);
+        }
+
+        private string GetResponseMessage(RateLimitOptions option)
+        {
+            var message = string.IsNullOrEmpty(option.QuotaExceededMessage)
+                ? $"API calls quota exceeded! maximum admitted {option.RateLimitRule.Limit} per {option.RateLimitRule.Period}."
+                : option.QuotaExceededMessage;
+            return message;
         }
 
         private Task SetRateLimitHeaders(object rateLimitHeaders)

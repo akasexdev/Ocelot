@@ -21,6 +21,7 @@ namespace Ocelot.Configuration.File
             DownstreamHostAndPorts = new List<FileHostAndPort>();
             DelegatingHandlers = new List<string>();
             LoadBalancerOptions = new FileLoadBalancerOptions();
+            SecurityOptions = new FileSecurityOptions();
             Priority = 1;
         }
 
@@ -43,7 +44,6 @@ namespace Ocelot.Configuration.File
         public FileRateLimitRule RateLimitOptions { get; set; }
         public FileAuthenticationOptions AuthenticationOptions { get; set; }
         public FileHttpHandlerOptions HttpHandlerOptions { get; set; }
-        public bool UseServiceDiscovery { get;set; }
         public List<FileHostAndPort> DownstreamHostAndPorts {get;set;}
         public string UpstreamHost { get; set; }
         public string Key { get;set; }
@@ -51,5 +51,6 @@ namespace Ocelot.Configuration.File
         public int Priority { get;set; }
         public int Timeout { get; set; }
         public bool DangerousAcceptAnyServerCertificateValidator { get; set; }
+        public FileSecurityOptions SecurityOptions { get; set; }
     }
 }

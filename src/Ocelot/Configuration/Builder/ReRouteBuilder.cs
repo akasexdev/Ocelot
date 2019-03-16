@@ -1,24 +1,24 @@
-﻿using System.Collections.Generic;
-using System.Net.Http;
-using Ocelot.Values;
-using System.Linq;
-using Ocelot.Configuration.Creator;
-using System;
-
-namespace Ocelot.Configuration.Builder
+﻿namespace Ocelot.Configuration.Builder
 {
+    using System.Collections.Generic;
+    using System.Net.Http;
+    using Ocelot.Values;
+    using System.Linq;
+    using Ocelot.Configuration.File;
+
     public class ReRouteBuilder
     {
-        private string _upstreamTemplate;
         private UpstreamPathTemplate _upstreamTemplatePattern;
         private List<HttpMethod> _upstreamHttpMethod;
         private string _upstreamHost;
         private List<DownstreamReRoute> _downstreamReRoutes;
+        private List<AggregateReRouteConfig> _downstreamReRoutesConfig;
         private string _aggregator;
 
         public ReRouteBuilder()
         {
             _downstreamReRoutes = new List<DownstreamReRoute>();
+            _downstreamReRoutesConfig = new List<AggregateReRouteConfig>();
         }
 
         public ReRouteBuilder WithDownstreamReRoute(DownstreamReRoute value)
@@ -39,13 +39,7 @@ namespace Ocelot.Configuration.Builder
             return this;
         }
 
-        public ReRouteBuilder WithUpstreamPathTemplate(string input)
-        {
-            _upstreamTemplate = input;
-            return this;
-        }
-
-        public ReRouteBuilder WithUpstreamTemplatePattern(UpstreamPathTemplate input)
+        public ReRouteBuilder WithUpstreamPathTemplate(UpstreamPathTemplate input)
         {
             _upstreamTemplatePattern = input;
             return this;
@@ -54,6 +48,12 @@ namespace Ocelot.Configuration.Builder
         public ReRouteBuilder WithUpstreamHttpMethod(List<string> input)
         {
             _upstreamHttpMethod = (input.Count == 0) ? new List<HttpMethod>() : input.Select(x => new HttpMethod(x.Trim())).ToList();
+            return this;
+        }
+
+        public ReRouteBuilder WithAggregateReRouteConfig(List<AggregateReRouteConfig> aggregateReRouteConfigs)
+        {
+            _downstreamReRoutesConfig = aggregateReRouteConfigs;
             return this;
         }
 
@@ -66,8 +66,8 @@ namespace Ocelot.Configuration.Builder
         public ReRoute Build()
         {
             return new ReRoute(
-                _downstreamReRoutes, 
-                new PathTemplate(_upstreamTemplate), 
+                _downstreamReRoutes,
+                _downstreamReRoutesConfig,
                 _upstreamHttpMethod, 
                 _upstreamTemplatePattern, 
                 _upstreamHost,

@@ -1,9 +1,3 @@
-using Ocelot.DownstreamRouteFinder.Finder;
-using Xunit;
-using Shouldly;
-using Ocelot.Configuration;
-using System.Net.Http;
-
 namespace Ocelot.UnitTests.DownstreamRouteFinder
 {
     using System;
@@ -14,6 +8,12 @@ namespace Ocelot.UnitTests.DownstreamRouteFinder
     using Ocelot.LoadBalancer.LoadBalancers;
     using Responses;
     using TestStack.BDDfy;
+    using Ocelot.DownstreamRouteFinder.Finder;
+    using Xunit;
+    using Shouldly;
+    using Ocelot.Configuration;
+    using System.Net.Http;
+    using System.Collections.Generic;
 
     public class DownstreamRouteCreatorTests
     {
@@ -37,7 +37,7 @@ namespace Ocelot.UnitTests.DownstreamRouteFinder
             _handlerOptions = new HttpHandlerOptionsBuilder().Build();
             _loadBalancerOptions = new LoadBalancerOptionsBuilder().WithType(nameof(NoLoadBalancer)).Build();
             _qosOptionsCreator
-                .Setup(x => x.Create(It.IsAny<QoSOptions>(), It.IsAny<string>(), It.IsAny<string[]>()))
+                .Setup(x => x.Create(It.IsAny<QoSOptions>(), It.IsAny<string>(), It.IsAny<List<string>>()))
                 .Returns(_qoSOptions);
             _creator = new DownstreamRouteCreator(_qosOptionsCreator.Object);
         }
@@ -50,6 +50,34 @@ namespace Ocelot.UnitTests.DownstreamRouteFinder
             this.Given(_ => GivenTheConfiguration(configuration))
                 .When(_ => WhenICreate())
                 .Then(_ => ThenTheDownstreamRouteIsCreated())
+                .BDDfy();
+        }
+
+        [Fact]
+        public void should_create_downstream_route_with_rate_limit_options()
+        {
+            var rateLimitOptions = new RateLimitOptionsBuilder()
+                .WithEnableRateLimiting(true)
+                .WithClientIdHeader("test")
+                .Build();
+
+            var downstreamReRoute = new DownstreamReRouteBuilder()
+                .WithServiceName("auth")
+                .WithRateLimitOptions(rateLimitOptions)
+                .Build();
+
+            var reRoute = new ReRouteBuilder()
+                .WithDownstreamReRoute(downstreamReRoute)
+                .Build();
+
+            var reRoutes = new List<ReRoute> { reRoute };
+            
+            var configuration = new InternalConfiguration(reRoutes, "doesnt matter", null, "doesnt matter", _loadBalancerOptions, "http", _qoSOptions, _handlerOptions);
+
+            this.Given(_ => GivenTheConfiguration(configuration))
+                .When(_ => WhenICreate())
+                .Then(_ => ThenTheDownstreamRouteIsCreated())
+                .And(_ => WithRateLimitOptions(rateLimitOptions))
                 .BDDfy();
         }
 
@@ -170,8 +198,15 @@ namespace Ocelot.UnitTests.DownstreamRouteFinder
         private void GivenTheQosCreatorReturns(QoSOptions options)
         {
             _qosOptionsCreator
-                .Setup(x => x.Create(It.IsAny<QoSOptions>(), It.IsAny<string>(), It.IsAny<string[]>()))
+                .Setup(x => x.Create(It.IsAny<QoSOptions>(), It.IsAny<string>(), It.IsAny<List<string>>()))
                 .Returns(options);
+        }
+
+        private void WithRateLimitOptions(RateLimitOptions expected)
+        {
+            _result.Data.ReRoute.DownstreamReRoute[0].EnableEndpointEndpointRateLimiting.ShouldBeTrue();
+            _result.Data.ReRoute.DownstreamReRoute[0].RateLimitOptions.EnableRateLimiting.ShouldBe(expected.EnableRateLimiting);
+            _result.Data.ReRoute.DownstreamReRoute[0].RateLimitOptions.ClientIdHeader.ShouldBe(expected.ClientIdHeader);
         }
 
         private void ThenTheDownstreamRouteIsCreated()
@@ -187,6 +222,9 @@ namespace Ocelot.UnitTests.DownstreamRouteFinder
             _result.Data.ReRoute.DownstreamReRoute[0].LoadBalancerOptions.Type.ShouldBe(nameof(NoLoadBalancer));
             _result.Data.ReRoute.DownstreamReRoute[0].HttpHandlerOptions.ShouldBe(_handlerOptions);
             _result.Data.ReRoute.DownstreamReRoute[0].QosOptions.ShouldBe(_qoSOptions);
+            _result.Data.ReRoute.UpstreamTemplatePattern.ShouldNotBeNull();
+            _result.Data.ReRoute.DownstreamReRoute[0].UpstreamPathTemplate.ShouldNotBeNull();
+
         }
 
         private void ThenTheDownstreamPathIsForwardSlash()
@@ -222,7 +260,7 @@ namespace Ocelot.UnitTests.DownstreamRouteFinder
             _result.Data.ReRoute.DownstreamReRoute[0].QosOptions.ShouldBe(expected);
             _result.Data.ReRoute.DownstreamReRoute[0].QosOptions.UseQos.ShouldBeTrue();
             _qosOptionsCreator
-                .Verify(x => x.Create(expected, _upstreamUrlPath, It.IsAny<string[]>()), Times.Once);
+                .Verify(x => x.Create(expected, _upstreamUrlPath, It.IsAny<List<string>>()), Times.Once);
         }
 
         private void GivenTheConfiguration(IInternalConfiguration config)

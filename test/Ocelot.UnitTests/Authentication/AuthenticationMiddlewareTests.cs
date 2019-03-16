@@ -1,5 +1,6 @@
-﻿using Ocelot.Configuration;
-using Ocelot.Middleware;
+﻿using Xunit;
+
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
 
 namespace Ocelot.UnitTests.Authentication
 {
@@ -15,14 +16,16 @@ namespace Ocelot.UnitTests.Authentication
     using Shouldly;
     using TestStack.BDDfy;
     using Xunit;
+    using Ocelot.Configuration;
+    using Ocelot.Middleware;
 
     public class AuthenticationMiddlewareTests
     {
         private AuthenticationMiddleware _middleware;
-        private Mock<IOcelotLoggerFactory> _factory;
+        private readonly Mock<IOcelotLoggerFactory> _factory;
         private Mock<IOcelotLogger> _logger;
         private OcelotRequestDelegate _next;
-        private DownstreamContext _downstreamContext;
+        private readonly DownstreamContext _downstreamContext;
 
         public AuthenticationMiddlewareTests()
         {
@@ -38,6 +41,20 @@ namespace Ocelot.UnitTests.Authentication
             this.Given(x => GivenTheDownStreamRouteIs(
                     new DownstreamReRouteBuilder().WithUpstreamHttpMethod(new List<string> { "Get" }).Build()))
                 .And(x => GivenTheTestServerPipelineIsConfigured())
+                .When(x => WhenICallTheMiddleware())
+                .Then(x => ThenTheUserIsAuthenticated())
+                .BDDfy();
+        }
+
+        [Fact]
+        public void should_call_next_middleware_if_route_is_using_options_method()
+        {
+            this.Given(x => GivenTheDownStreamRouteIs(
+                    new DownstreamReRouteBuilder()
+                        .WithUpstreamHttpMethod(new List<string> { "Options" })
+                        .WithIsAuthenticated(true)
+                        .Build()))
+                .And(x => GivenTheRequestIsUsingOptionsMethod())
                 .When(x => WhenICallTheMiddleware())
                 .Then(x => ThenTheUserIsAuthenticated())
                 .BDDfy();
@@ -65,9 +82,14 @@ namespace Ocelot.UnitTests.Authentication
             };
         }
 
+        private void GivenTheRequestIsUsingOptionsMethod()
+        {
+            _downstreamContext.HttpContext.Request.Method = "OPTIONS";
+        }
+
         private void ThenTheUserIsAuthenticated()
         {
-            var content = _downstreamContext.HttpContext.Response.Body.AsString(); 
+            var content = _downstreamContext.HttpContext.Response.Body.AsString();
             content.ShouldBe("The user is authenticated");
         }
 
@@ -81,7 +103,7 @@ namespace Ocelot.UnitTests.Authentication
     {
         public static string AsString(this Stream stream)
         {
-            using(var reader = new StreamReader(stream))
+            using (var reader = new StreamReader(stream))
             {
                 string text = reader.ReadToEnd();
                 return text;

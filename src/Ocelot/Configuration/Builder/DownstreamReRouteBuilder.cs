@@ -11,7 +11,6 @@ namespace Ocelot.Configuration.Builder
         private AuthenticationOptions _authenticationOptions;
         private string _loadBalancerKey;
         private string _downstreamPathTemplate;
-        private string _upstreamTemplate;
         private UpstreamPathTemplate _upstreamTemplatePattern;
         private List<HttpMethod> _upstreamHttpMethod;
         private bool _isAuthenticated;
@@ -34,13 +33,12 @@ namespace Ocelot.Configuration.Builder
         private List<HeaderFindAndReplace> _upstreamHeaderFindAndReplace;
         private List<HeaderFindAndReplace> _downstreamHeaderFindAndReplace;
         private readonly List<DownstreamHostAndPort> _downstreamAddresses;
-        private string _upstreamHost;
         private string _key;
         private List<string> _delegatingHandlers;
         private List<AddHeader> _addHeadersToDownstream;
         private List<AddHeader> _addHeadersToUpstream;
         private bool _dangerousAcceptAnyServerCertificateValidator;
-
+        private SecurityOptions _securityOptions;
         public DownstreamReRouteBuilder()
         {
             _downstreamAddresses = new List<DownstreamHostAndPort>();
@@ -52,12 +50,6 @@ namespace Ocelot.Configuration.Builder
         public DownstreamReRouteBuilder WithDownstreamAddresses(List<DownstreamHostAndPort> downstreamAddresses)
         {
             _downstreamAddresses.AddRange(downstreamAddresses);
-            return this;
-        }
-
-        public DownstreamReRouteBuilder WithUpstreamHost(string upstreamAddresses)
-        {
-            _upstreamHost = upstreamAddresses;
             return this;
         }
 
@@ -79,13 +71,7 @@ namespace Ocelot.Configuration.Builder
             return this;
         }
 
-        public DownstreamReRouteBuilder WithUpstreamPathTemplate(string input)
-        {
-            _upstreamTemplate = input;
-            return this;
-        }
-
-        public DownstreamReRouteBuilder WithUpstreamTemplatePattern(UpstreamPathTemplate input)
+        public DownstreamReRouteBuilder WithUpstreamPathTemplate(UpstreamPathTemplate input)
         {
             _upstreamTemplatePattern = input;
             return this;
@@ -241,11 +227,17 @@ namespace Ocelot.Configuration.Builder
             return this;
         }
 
+        public DownstreamReRouteBuilder WithSecurityOptions(SecurityOptions securityOptions)
+        {
+            _securityOptions = securityOptions;
+            return this;
+        }
+
         public DownstreamReRoute Build()
         {
             return new DownstreamReRoute(
                 _key,
-                new PathTemplate(_upstreamTemplate),
+                _upstreamTemplatePattern,
                 _upstreamHeaderFindAndReplace,
                 _downstreamHeaderFindAndReplace, 
                 _downstreamAddresses,
@@ -267,12 +259,13 @@ namespace Ocelot.Configuration.Builder
                 _isAuthenticated, 
                 _isAuthorised, 
                 _authenticationOptions, 
-                new PathTemplate(_downstreamPathTemplate),
+                new DownstreamPathTemplate(_downstreamPathTemplate),
                 _loadBalancerKey,
                 _delegatingHandlers,
                 _addHeadersToDownstream,
                 _addHeadersToUpstream,
-                _dangerousAcceptAnyServerCertificateValidator);
+                _dangerousAcceptAnyServerCertificateValidator,
+                _securityOptions);
         }
     }
 }

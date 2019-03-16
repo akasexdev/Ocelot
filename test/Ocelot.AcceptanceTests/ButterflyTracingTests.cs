@@ -1,19 +1,18 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Net;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Ocelot.Configuration.File;
-using Shouldly;
-using TestStack.BDDfy;
-using Xunit;
-using Butterfly.Client.AspNetCore;
-using static Rafty.Infrastructure.Wait;
-
 namespace Ocelot.AcceptanceTests
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Net;
+    using Butterfly.Client.AspNetCore;
+    using Configuration.File;
+    using Microsoft.AspNetCore.Builder;
+    using Microsoft.AspNetCore.Hosting;
+    using Microsoft.AspNetCore.Http;
+    using Rafty.Infrastructure;
+    using Shouldly;
+    using TestStack.BDDfy;
+    using Xunit;
     using Xunit.Abstractions;
 
     public class ButterflyTracingTests : IDisposable
@@ -57,12 +56,6 @@ namespace Ocelot.AcceptanceTests
                             HttpHandlerOptions = new FileHttpHandlerOptions
                             {
                                 UseTracing = true
-                            },
-                            QoSOptions = new FileQoSOptions
-                            {
-                                ExceptionsAllowedBeforeBreaking = 3,
-                                DurationOfBreak = 10,
-                                TimeoutValue = 5000
                             }
                         },
                         new FileReRoute
@@ -82,12 +75,6 @@ namespace Ocelot.AcceptanceTests
                             HttpHandlerOptions = new FileHttpHandlerOptions
                             {
                                 UseTracing = true
-                            },
-                            QoSOptions = new FileQoSOptions
-                            {
-                                ExceptionsAllowedBeforeBreaking = 3,
-                                DurationOfBreak = 10,
-                                TimeoutValue = 5000
                             }
                         }
                     }
@@ -108,7 +95,7 @@ namespace Ocelot.AcceptanceTests
                 .And(x => _steps.ThenTheResponseBodyShouldBe("Hello from Tom"))
                 .BDDfy();
 
-            var commandOnAllStateMachines = WaitFor(10000).Until(() => _butterflyCalled >= 4);
+            var commandOnAllStateMachines = Wait.WaitFor(10000).Until(() => _butterflyCalled >= 4);
 
             _output.WriteLine($"_butterflyCalled is {_butterflyCalled}");
 
@@ -139,12 +126,6 @@ namespace Ocelot.AcceptanceTests
                             HttpHandlerOptions = new FileHttpHandlerOptions
                             {
                                 UseTracing = true
-                            },
-                            QoSOptions = new FileQoSOptions
-                            {
-                                ExceptionsAllowedBeforeBreaking = 3,
-                                DurationOfBreak = 10,
-                                TimeoutValue = 5000
                             },
                             DownstreamHeaderTransform = new Dictionary<string, string>()
                             {
@@ -265,12 +246,6 @@ namespace Ocelot.AcceptanceTests
                 .Build();
 
             _serviceTwoBuilder.Start();
-        }
-
-        internal void ThenTheDownstreamUrlPathShouldBe(string expectedDownstreamPathOne, string expectedDownstreamPath)
-        {
-            _downstreamPathOne.ShouldBe(expectedDownstreamPathOne);
-            _downstreamPathTwo.ShouldBe(expectedDownstreamPath);
         }
 
         public void Dispose()

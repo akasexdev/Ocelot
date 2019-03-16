@@ -223,9 +223,9 @@
             this.Given(x => x.GivenTheDownStreamRouteIs(downstreamRoute))
                 .And(x => GivenTheServiceProviderConfigIs(config))
                 .And(x => x.GivenTheDownstreamRequestUriIs("http://localhost:19081"))
-                .And(x => x.GivenTheUrlReplacerWillReturn("/api/products/1"))
+                .And(x => x.GivenTheUrlReplacerWillReturnSequence("/api/products/1", "Ocelot/OcelotApp"))
                 .When(x => x.WhenICallTheMiddleware())
-                .Then(x => x.ThenTheDownstreamRequestUriIs("http://localhost:19081/Ocelot/OcelotApp/api/products/1?cmd=instance"))
+                .Then(x => x.ThenTheDownstreamRequestUriIs("http://localhost:19081/Ocelot/OcelotApp/api/products/1"))
                 .BDDfy();
         }
 
@@ -253,9 +253,9 @@
             this.Given(x => x.GivenTheDownStreamRouteIs(downstreamRoute))
                 .And(x => GivenTheServiceProviderConfigIs(config))
                 .And(x => x.GivenTheDownstreamRequestUriIs("http://localhost:19081?Tom=test&laura=1"))
-                .And(x => x.GivenTheUrlReplacerWillReturn("/api/products/1"))
+                .And(x => x.GivenTheUrlReplacerWillReturnSequence("/api/products/1", "Ocelot/OcelotApp"))
                 .When(x => x.WhenICallTheMiddleware())
-                .Then(x => x.ThenTheDownstreamRequestUriIs("http://localhost:19081/Ocelot/OcelotApp/api/products/1?Tom=test&laura=1&cmd=instance"))
+                .Then(x => x.ThenTheDownstreamRequestUriIs("http://localhost:19081/Ocelot/OcelotApp/api/products/1?Tom=test&laura=1"))
                 .BDDfy();
         }
 
@@ -283,11 +283,74 @@
             this.Given(x => x.GivenTheDownStreamRouteIs(downstreamRoute))
                 .And(x => GivenTheServiceProviderConfigIs(config))
                 .And(x => x.GivenTheDownstreamRequestUriIs("http://localhost:19081?PartitionKind=test&PartitionKey=1"))
-                .And(x => x.GivenTheUrlReplacerWillReturn("/api/products/1"))
+                .And(x => x.GivenTheUrlReplacerWillReturnSequence("/api/products/1", "Ocelot/OcelotApp"))
                 .When(x => x.WhenICallTheMiddleware())
                 .Then(x => x.ThenTheDownstreamRequestUriIs("http://localhost:19081/Ocelot/OcelotApp/api/products/1?PartitionKind=test&PartitionKey=1"))
                 .BDDfy();
         }
+
+        [Fact]
+        public void should_create_service_fabric_url_with_version_from_upstream_path_template()
+        {
+            var downstreamRoute = new DownstreamRoute(
+                new List<PlaceholderNameAndValue>(),
+                new ReRouteBuilder().WithDownstreamReRoute(
+                        new DownstreamReRouteBuilder()
+                            .WithDownstreamScheme("http")
+                            .WithUpstreamPathTemplate(new UpstreamPathTemplateBuilder().WithOriginalValue("/products").Build())
+                            .WithUseServiceDiscovery(true)
+                            .Build()
+                    ).Build());
+
+            var config = new ServiceProviderConfigurationBuilder()
+                .WithType("ServiceFabric")
+                .WithHost("localhost")
+                .WithPort(19081)
+                .Build();
+            
+            this.Given(x => x.GivenTheDownStreamRouteIs(downstreamRoute))
+                .And(x => GivenTheServiceProviderConfigIs(config))
+                .And(x => x.GivenTheDownstreamRequestUriIs("http://localhost:19081?PartitionKind=test&PartitionKey=1"))
+                .And(x => x.GivenTheUrlReplacerWillReturnSequence("/products", "Service_1.0/Api"))
+                .When(x => x.WhenICallTheMiddleware())
+                .Then(x => x.ThenTheDownstreamRequestUriIs("http://localhost:19081/Service_1.0/Api/products?PartitionKind=test&PartitionKey=1"))
+                .BDDfy();
+        }
+
+        [Fact]
+        public void issue_473_should_not_remove_additional_query_string()
+        {
+            var downstreamReRoute = new DownstreamReRouteBuilder()
+                .WithDownstreamPathTemplate("/Authorized/{action}?server={server}")
+                .WithUpstreamHttpMethod(new List<string> { "Post", "Get" })
+                .WithDownstreamScheme("http")
+                .WithUpstreamPathTemplate(new UpstreamPathTemplateBuilder().WithOriginalValue("/uc/Authorized/{server}/{action}").Build())
+                .Build();
+
+            var config = new ServiceProviderConfigurationBuilder()
+                .Build();
+
+            this.Given(x => x.GivenTheDownStreamRouteIs(
+                    new DownstreamRoute(
+                        new List<PlaceholderNameAndValue>
+                        {
+                            new PlaceholderNameAndValue("{action}", "1"),
+                            new PlaceholderNameAndValue("{server}", "2")
+                        },
+                        new ReRouteBuilder()
+                            .WithDownstreamReRoute(downstreamReRoute)
+                            .WithUpstreamHttpMethod(new List<string> { "Post", "Get" })
+                            .Build())))
+                .And(x => x.GivenTheDownstreamRequestUriIs("http://localhost:5000/uc/Authorized/2/1/refresh?refreshToken=2288356cfb1338fdc5ff4ca558ec785118dfe1ff2864340937da8226863ff66d"))
+                .And(x => GivenTheServiceProviderConfigIs(config))
+                .And(x => x.GivenTheUrlReplacerWillReturn("/Authorized/1?server=2"))
+                .When(x => x.WhenICallTheMiddleware())
+                .Then(x => x.ThenTheDownstreamRequestUriIs("http://localhost:5000/Authorized/1?refreshToken=2288356cfb1338fdc5ff4ca558ec785118dfe1ff2864340937da8226863ff66d&server=2"))
+                .And(x => ThenTheQueryStringIs("?refreshToken=2288356cfb1338fdc5ff4ca558ec785118dfe1ff2864340937da8226863ff66d&server=2"))
+                .BDDfy();
+        }
+
+
 
         private void GivenTheServiceProviderConfigIs(ServiceProviderConfiguration config)
         {
@@ -313,11 +376,21 @@
             _downstreamContext.DownstreamRequest = new DownstreamRequest(_request);
         }
 
+        private void GivenTheUrlReplacerWillReturnSequence(params string[] paths)
+        {
+            var setup = _downstreamUrlTemplateVariableReplacer
+                .SetupSequence(x => x.Replace(It.IsAny<string>(), It.IsAny<List<PlaceholderNameAndValue>>()));
+            foreach (var path in paths)
+            {
+                var response = new OkResponse<DownstreamPath>(new DownstreamPath(path));
+                setup.Returns(response);
+            }
+        }
         private void GivenTheUrlReplacerWillReturn(string path)
         {
             _downstreamPath = new OkResponse<DownstreamPath>(new DownstreamPath(path));
             _downstreamUrlTemplateVariableReplacer
-                .Setup(x => x.Replace(It.IsAny<PathTemplate>(), It.IsAny<List<PlaceholderNameAndValue>>()))
+                .Setup(x => x.Replace(It.IsAny<string>(), It.IsAny<List<PlaceholderNameAndValue>>()))
                 .Returns(_downstreamPath);
         }
 

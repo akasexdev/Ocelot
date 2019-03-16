@@ -8,7 +8,7 @@ namespace Ocelot.Configuration
     {
         public DownstreamReRoute(
             string key,
-            PathTemplate upstreamPathTemplate,
+            UpstreamPathTemplate upstreamPathTemplate,
             List<HeaderFindAndReplace> upstreamHeadersFindAndReplace,
             List<HeaderFindAndReplace> downstreamHeadersFindAndReplace,
             List<DownstreamHostAndPort> downstreamAddresses,
@@ -30,12 +30,13 @@ namespace Ocelot.Configuration
             bool isAuthenticated,
             bool isAuthorised,
             AuthenticationOptions authenticationOptions,
-            PathTemplate downstreamPathTemplate,
+            DownstreamPathTemplate downstreamPathTemplate,
             string loadBalancerKey,
             List<string> delegatingHandlers,
             List<AddHeader> addHeadersToDownstream,
             List<AddHeader> addHeadersToUpstream,
-            bool dangerousAcceptAnyServerCertificateValidator)
+            bool dangerousAcceptAnyServerCertificateValidator,
+            SecurityOptions securityOptions)
         {
             DangerousAcceptAnyServerCertificateValidator = dangerousAcceptAnyServerCertificateValidator;
             AddHeadersToDownstream = addHeadersToDownstream;
@@ -66,10 +67,11 @@ namespace Ocelot.Configuration
             DownstreamPathTemplate = downstreamPathTemplate;
             LoadBalancerKey = loadBalancerKey;
             AddHeadersToUpstream = addHeadersToUpstream;
+            SecurityOptions = securityOptions;
         }
 
         public string Key { get; }
-        public PathTemplate UpstreamPathTemplate { get; }
+        public UpstreamPathTemplate UpstreamPathTemplate { get; }
         public List<HeaderFindAndReplace> UpstreamHeadersFindAndReplace { get; }
         public List<HeaderFindAndReplace> DownstreamHeadersFindAndReplace { get; }
         public List<DownstreamHostAndPort> DownstreamAddresses { get; }
@@ -91,11 +93,12 @@ namespace Ocelot.Configuration
         public bool IsAuthenticated { get; }
         public bool IsAuthorised { get; }
         public AuthenticationOptions AuthenticationOptions { get; }
-        public PathTemplate DownstreamPathTemplate { get; }
+        public DownstreamPathTemplate DownstreamPathTemplate { get; }
         public string LoadBalancerKey { get; }
         public List<string> DelegatingHandlers { get; }
         public List<AddHeader> AddHeadersToDownstream { get; }
         public List<AddHeader> AddHeadersToUpstream { get; }
         public bool DangerousAcceptAnyServerCertificateValidator { get; }
+        public SecurityOptions SecurityOptions { get; }
     }
 }

@@ -1,4 +1,7 @@
-﻿namespace Ocelot.ManualTest
+﻿using System.Reflection.Metadata.Ecma335;
+using Ocelot.Requester;
+
+namespace Ocelot.ManualTest
 {
     using System.IO;
     using Microsoft.AspNetCore.Hosting;
@@ -8,7 +11,6 @@
     using Ocelot.DependencyInjection;
     using Ocelot.Middleware;
     using System;
-    using IdentityServer4.AccessTokenValidation;
     using System.Net.Http;
     using System.Threading.Tasks;
     using System.Threading;
@@ -26,7 +28,7 @@
                         .SetBasePath(hostingContext.HostingEnvironment.ContentRootPath)
                         .AddJsonFile("appsettings.json", true, true)
                         .AddJsonFile($"appsettings.{hostingContext.HostingEnvironment.EnvironmentName}.json", true, true)
-                        .AddJsonFile("ocelot.json")
+                        .AddJsonFile("ocelot.json", false, false)
                         .AddEnvironmentVariables();
                 })
                 .ConfigureServices(s => {
@@ -37,18 +39,19 @@
                             x.Audience = "test";
                         });
 
-                    s.AddOcelot()
-                        .AddDelegatingHandler<FakeHandler>(true)
+                     s.AddSingleton<QosDelegatingHandlerDelegate>((x, t) => new FakeHandler());
+                     s.AddOcelot()
+                        .AddDelegatingHandler<FakeHandler>(true);
                         // .AddCacheManager(x =>
                         // {
                         //     x.WithDictionaryHandle();
                         // })
-                      /*.AddOpenTracing(option =>
-                      {
-                          option.CollectorUrl = "http://localhost:9618";
-                          option.Service = "Ocelot.ManualTest";
-                      })*/
-                    .AddAdministration("/administration", "secret");
+                        // .AddOpenTracing(option =>
+                        // {
+                        //     option.CollectorUrl = "http://localhost:9618";
+                        //     option.Service = "Ocelot.ManualTest";
+                        // })
+                        // .AddAdministration("/administration", "secret");
                 })
                 .ConfigureLogging((hostingContext, logging) =>
                 {

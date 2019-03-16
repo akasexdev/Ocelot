@@ -27,7 +27,7 @@ namespace Ocelot.DownstreamUrlCreator.Middleware
         public async Task Invoke(DownstreamContext context)
         {
             var response = _replacer
-                .Replace(context.DownstreamReRoute.DownstreamPathTemplate, context.TemplatePlaceholderNameAndValues);
+                .Replace(context.DownstreamReRoute.DownstreamPathTemplate.Value, context.TemplatePlaceholderNameAndValues);
 
             if (response.IsError)
             {
@@ -52,7 +52,15 @@ namespace Ocelot.DownstreamUrlCreator.Middleware
                 if(ContainsQueryString(dsPath))
                 {
                     context.DownstreamRequest.AbsolutePath = GetPath(dsPath);
-                    context.DownstreamRequest.Query = GetQueryString(dsPath);
+
+                    if (string.IsNullOrEmpty(context.DownstreamRequest.Query))
+                    {
+                        context.DownstreamRequest.Query = GetQueryString(dsPath);
+                    }
+                    else
+                    {
+                        context.DownstreamRequest.Query += GetQueryString(dsPath).Replace('?', '&');
+                    }
                 }
                 else
                 {
@@ -95,7 +103,7 @@ namespace Ocelot.DownstreamUrlCreator.Middleware
             return dsPath.Value.Substring(0, dsPath.Value.IndexOf("?", StringComparison.Ordinal));
         }
 
-         private string GetQueryString(DownstreamPath dsPath)
+        private string GetQueryString(DownstreamPath dsPath)
         {
             return dsPath.Value.Substring(dsPath.Value.IndexOf("?", StringComparison.Ordinal));
         }
@@ -108,25 +116,14 @@ namespace Ocelot.DownstreamUrlCreator.Middleware
         private (string path, string query) CreateServiceFabricUri(DownstreamContext context, Response<DownstreamPath> dsPath)
         {
             var query = context.DownstreamRequest.Query;           
-            var serviceFabricPath = $"/{context.DownstreamReRoute.ServiceName + dsPath.Data.Value}";
-
-            if (RequestForStatefullService(query))
-            {
-                return (serviceFabricPath, query);
-            }
-
-            var split = string.IsNullOrEmpty(query) ? "?" : "&";
-            return (serviceFabricPath, $"{query}{split}cmd=instance");
+            var serviceName = _replacer.Replace(context.DownstreamReRoute.ServiceName, context.TemplatePlaceholderNameAndValues);
+            var pathTemplate = $"/{serviceName.Data.Value}{dsPath.Data.Value}";
+            return (pathTemplate, query);
         }
 
         private static bool ServiceFabricRequest(DownstreamContext context)
         {
-            return context.Configuration.ServiceProviderConfiguration.Type == "ServiceFabric" && context.DownstreamReRoute.UseServiceDiscovery;
-        }
-
-        private static bool RequestForStatefullService(string query)
-        {
-            return query.Contains("PartitionKind") && query.Contains("PartitionKey");
+            return context.Configuration.ServiceProviderConfiguration.Type?.ToLower() == "servicefabric" && context.DownstreamReRoute.UseServiceDiscovery;
         }
     }
 }

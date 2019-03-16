@@ -13,17 +13,14 @@ namespace Ocelot.DownstreamRouteFinder.Middleware
     {
         private readonly OcelotRequestDelegate _next;
         private readonly IDownstreamRouteProviderFactory _factory;
-        private readonly IInternalConfigurationRepository _repo;
         private readonly IMultiplexer _multiplexer;
 
         public DownstreamRouteFinderMiddleware(OcelotRequestDelegate next,
             IOcelotLoggerFactory loggerFactory,
             IDownstreamRouteProviderFactory downstreamRouteFinder,
-            IInternalConfigurationRepository repo,
             IMultiplexer multiplexer)
                 :base(loggerFactory.CreateLogger<DownstreamRouteFinderMiddleware>())
         {
-            _repo = repo;
             _multiplexer = multiplexer;
             _next = next;
             _factory = downstreamRouteFinder;
@@ -52,6 +49,7 @@ namespace Ocelot.DownstreamRouteFinder.Middleware
             }            
             
             var downstreamPathTemplates = string.Join(", ", downstreamRoute.Data.ReRoute.DownstreamReRoute.Select(r => r.DownstreamPathTemplate.Value));
+            
             Logger.LogDebug($"downstream templates are {downstreamPathTemplates}");
 
             context.TemplatePlaceholderNameAndValues = downstreamRoute.Data.TemplatePlaceholderNameAndValues;
